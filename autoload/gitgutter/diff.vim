@@ -73,6 +73,8 @@ function! gitgutter#diff#run_diff(bufnr, from, preserve_full_diff) abort
     throw 'gitgutter assume unchanged'
   endif
 
+  let cmd_placeholder = ':::'
+
   " Wrap compound commands in parentheses to make Windows happy.
   " bash doesn't mind the parentheses.
   let cmd = '('
@@ -133,7 +135,8 @@ function! gitgutter#diff#run_diff(bufnr, from, preserve_full_diff) abort
 
   " Pipe git-diff output into grep.
   if !a:preserve_full_diff && !empty(g:gitgutter_grep)
-    let cmd .= ' | '.g:gitgutter_grep.' '.gitgutter#utility#shellescape('^@@ ')
+    " let cmd .= ' | '.g:gitgutter_grep.' '.gitgutter#utility#shellescape('^@@ ')
+    let cmd .= ' | '.g:gitgutter_grep.' '.cmd_placeholder
   endif
 
   " grep exits with 1 when no matches are found; git-diff exits with 1 when
@@ -143,6 +146,12 @@ function! gitgutter#diff#run_diff(bufnr, from, preserve_full_diff) abort
   let cmd .= ' || exit 0'
 
   let cmd .= ')'
+
+  if gitgutter#utility#windows()
+    let cmd = shellescape(cmd)
+  endif
+
+  let cmd = substitute(cmd, cmd_placeholder, gitgutter#utility#shellescape('^@@ '), '')
 
   if g:gitgutter_async && gitgutter#async#available()
     call gitgutter#async#execute(cmd, a:bufnr, {
